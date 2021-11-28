@@ -130,9 +130,9 @@ def evaluate_model(data, tags, query_date):
     print("mean absolute error:", errors.mean())
 
 
-def predict_price(conn, latitude, longitude, date, property_type, distance=1000):
+def predict_price(conn, latitude, longitude, date, property_type, lower=5000, upper=7000, distance=1000, tags = tags):
     data, box = assess.get_data(
-        conn, tags, latitude, longitude, date, lower=5000, upper=7000, distance=distance
+        conn, tags, latitude, longitude, date, lower=lower, upper=upper, distance=distance
     )
     train, test = select_and_split(data)
     design_test = df_to_design(test, tags, date)
