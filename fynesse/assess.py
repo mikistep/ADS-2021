@@ -296,9 +296,9 @@ def price_correlation_distributions(df, tags):
         )
         axs[i + 2].title.set_text(name + " - price relation")
 
-def get_data(conn, tags, latitude, longitude, date, lower = 500, upper = 1000, distance = 1000):
-  start_date = date - datetime.timedelta(days = 365 * 5)
-  end_date = date + datetime.timedelta(days = 365 * 5)
+def get_data(conn, tags, latitude, longitude, date, lower = 500, upper = 1000, distance = 1000, year_change = 3):
+  start_date = date - datetime.timedelta(days = 365 * year_change)
+  end_date = date + datetime.timedelta(days = 365 * year_change)
   
   cnt, bx = get_box(conn, latitude=latitude, longitude=longitude, start_date="'" + str(start_date) + "'", end_date="'" + str(end_date) + "'", lower=lower, upper=upper)
   print(cnt, bx)
