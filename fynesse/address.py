@@ -94,7 +94,6 @@ def train_model(data, tags, query_date):
 
 
 def select_and_split(data):
-    np.random.seed(int(time.time()))
     prices = data["price"]
     low, high = np.percentile(prices, [2.5, 97.5])
     main_data = data[data["price"].apply(lambda x: x >= low and x <= high)]
@@ -131,9 +130,9 @@ def evaluate_model(data, tags, query_date):
     print("mean absolute error:", errors.mean())
 
 
-def predict_price(latitude, longitude, date, property_type, distance=1000):
+def predict_price(conn, latitude, longitude, date, property_type, distance=1000):
     data, box = assess.get_data(
-        latitude, longitude, date, lower=4000, upper=5000, distance=distance
+        conn, tags, latitude, longitude, date, lower=5000, upper=7000, distance=distance
     )
     train, test = select_and_split(data)
     design_test = df_to_design(test, tags, date)
