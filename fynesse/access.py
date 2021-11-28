@@ -12,5 +12,6 @@ import sqlite"""
 
 def data():
     """Read the data from the web or local file, returning structured format such as a data frame"""
-    raise NotImplementedError
+    print("xd")
+    return
 
