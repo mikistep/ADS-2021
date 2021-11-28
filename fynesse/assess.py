@@ -3,7 +3,7 @@ from .config import *
 from . import access
 
 import math
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import osmnx as ox
 import pandas
 import geopandas
