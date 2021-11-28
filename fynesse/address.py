@@ -118,7 +118,7 @@ def evaluate_model(data, tags, query_date):
     errors = np.array([])
     for i in range(10):
         train, test = select_and_split(data)
-        model = train_model(data, tags, query_date)
+        model = train_model(train, tags, query_date)
 
         design_test = df_to_design(test, tags, query_date)
         test_prediction = model.predict(design_test)
@@ -137,7 +137,7 @@ def predict_price(conn, latitude, longitude, date, property_type, lower=5000, up
     train, test = select_and_split(data)
     design_test = df_to_design(test, tags, date)
 
-    model = train_model(data, tags, date)
+    model = train_model(train, tags, date)
 
     test_prediction = model.predict(design_test)
     error = sklearn.metrics.mean_absolute_percentage_error(
