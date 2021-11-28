@@ -115,7 +115,12 @@ def get_transactions(conn, box, debug=False):
         print(query)
     cur = conn.cursor()
     cur.execute(query)
-    return cur.fetchall()
+    result = cur.fetchall()
+    df = pandas.DataFrame(result, columns = ["price", "date", "postcode", "property_type", "new_build_flag", "tenure_type", "locality", "town_city", "district", "county", "country", "latitude", "longitude", "db_id"])
+    df = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy(df.longitude, df.latitude))
+    df.set_crs(epsg = 4326, inplace=True)
+    df.to_crs(epsg = 27700, inplace=True)
+    return df
 
 
 # construts box given start_date, end_date, main point coordinates
