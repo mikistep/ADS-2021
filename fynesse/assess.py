@@ -303,11 +303,7 @@ def get_data(conn, tags, latitude, longitude, date, lower = 500, upper = 1000, d
   cnt, bx = get_box(conn, latitude=latitude, longitude=longitude, start_date="'" + str(start_date) + "'", end_date="'" + str(end_date) + "'", lower=lower, upper=upper)
   print(cnt, bx)
   result = get_transactions(conn, bx)
-  df = pandas.DataFrame(result, columns = ["price", "date", "postcode", "property_type", "new_build_flag", "tenure_type", "locality", "town_city", "district", "county", "country", "latitude", "longitude", "db_id"])
-  df = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy(df.longitude, df.latitude))
-  df.set_crs(epsg = 4326, inplace=True)
-  df.to_crs(epsg = 27700, inplace=True)
-  data = get_nearby_count(df, tags, bx, distance = distance)
+  data = get_nearby_count(result, tags, bx, distance = distance)
   return data, bx
 
 
