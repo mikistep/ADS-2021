@@ -200,7 +200,6 @@ def create_prices_coordinates_data(conn):
 
 
 def run_all(conn, pp_data_path, postcode_path):
-    login(conn)
     create_pp_data(conn, pp_data_path)
     create_postcode_data(conn, postcode_path)
     create_prices_coordinates_data(conn)

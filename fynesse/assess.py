@@ -7,6 +7,8 @@ import matplotlib as plt
 import osmnx as ox
 import pandas
 import geopandas
+import numpy as np
+import datetime
 
 """These are the types of import we might expect in this file
 import pandas
@@ -93,7 +95,7 @@ def get_transaction_count(conn, box, debug=False):
 
 
 # returns all transaction data within a box
-def get_data(conn, box, debug=False):
+def get_transactions(conn, box, debug=False):
     template = """
     SELECT * FROM
     prices_coordinates_data
@@ -118,7 +120,7 @@ def get_data(conn, box, debug=False):
 
 # construts box given start_date, end_date, main point coordinates
 # number of transactions is expected to be in <lower, upper>
-def get_box(conn, latitude, longitude, start_date, end_date, lower, upper):
+def get_box(conn, latitude, longitude, start_date, end_date, lower, upper, debug = False):
     assert lower < upper
     min_change = 0.5  # in kilometres
     max_change = 1000
@@ -128,11 +130,12 @@ def get_box(conn, latitude, longitude, start_date, end_date, lower, upper):
             latitude, longitude, now_change, start_date=start_date, end_date=end_date
         )
         count = get_transaction_count(conn, box)
-        print("checking {} kilometres, got {} transactions".format(now_change, count))
+        if debug:
+          print("checking {} kilometres, got {} transactions".format(now_change, count))
         if count < lower:
             min_change *= 1.4
             if min_change > max_change:
-                return 0, construct_box(latitude, longitude, 0, "'1970-01-01'", 0)
+                return 0, construct_box(latitude, longitude, 0, "1970-01-01", 0)
                 # nothing found with 1000 kilometres
         elif count > upper:
             max_change = min_change
@@ -162,7 +165,6 @@ def get_box(conn, latitude, longitude, start_date, end_date, lower, upper):
 
 def get_nearby_count(gdf, tags, box, distance=500):
     tag_dict = construct_dict(tags)
-    print(tags)
     print(tag_dict)
     box = extend_box(box, 1 + distance / 1000)
     pois = ox.geometries_from_bbox(
@@ -192,36 +194,117 @@ def get_nearby_count(gdf, tags, box, distance=500):
         gdf[tag["name"]] = gdf["postcode"].apply(lambda x: d.get(x, 0))
     return gdf
 
+
 def coor_to_grid(lat, long):
-  print(lat, long)
-  df = pandas.DataFrame({"id" : [0]})
-  gdf = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy([long], [lat]))
-  gdf.set_crs(epsg=4326, inplace = True)
-  gdf.to_crs(epsg=27700, inplace = True)
-  print(gdf.head())
-  return gdf
+    print(lat, long)
+    df = pandas.DataFrame({"id": [0]})
+    gdf = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy([long], [lat]))
+    gdf.set_crs(epsg=4326, inplace=True)
+    gdf.to_crs(epsg=27700, inplace=True)
+    print(gdf.head())
+    return gdf
+
 
 def plot_points(df, box):
-  fig = plt.figure(figsize=(10,5))
-  ax = fig.add_subplot(111)
+    fig = plt.figure(figsize=(10, 5))
+    ax = fig.add_subplot(111)
 
-  graph = ox.graph_from_bbox(box["min_latitude"], box["max_latitude"], box["min_longitude"], box["max_longitude"])
-  # Retrieve nodes and edges
-  nodes, edges = ox.graph_to_gdfs(graph)
+    graph = ox.graph_from_bbox(
+        box["min_latitude"],
+        box["max_latitude"],
+        box["min_longitude"],
+        box["max_longitude"],
+    )
+    # Retrieve nodes and edges
+    nodes, edges = ox.graph_to_gdfs(graph)
 
-  def important_road(road):
-    blacklist = ["service", "footway", "bridleway", "living_street"]
-    return not any(t in road for t in blacklist)
+    def important_road(road):
+        blacklist = ["service", "footway", "bridleway", "living_street"]
+        return not any(t in road for t in blacklist)
 
-  edges = edges[edges["highway"].apply(important_road)]
-  edges.set_crs(epsg=4326, inplace = True)
-  edges.to_crs(epsg=27700, inplace = True)
-  edges.plot(ax=ax, linewidth=1, edgecolor="dimgray", zorder = 0)
-  query_point = coor_to_grid(box["base_latitude"], box["base_longitude"])
-  query_point.plot(marker='.', markersize=50, ax = ax, color = "red", zorder = 2)
-  postcode_data = df.drop_duplicates(subset = ["postcode"], inplace = False)
-  postcode_data.plot(marker='.', markersize=10, ax = ax, color = "blue", zorder = 1).set(xlabel='easting', ylabel='northing', label = "postcodes", title='postcodes centres')
-  return
+    edges = edges[edges["highway"].apply(important_road)]
+    edges.set_crs(epsg=4326, inplace=True)
+    edges.to_crs(epsg=27700, inplace=True)
+    edges.plot(ax=ax, linewidth=1, edgecolor="dimgray", zorder=0)
+    query_point = coor_to_grid(box["base_latitude"], box["base_longitude"])
+    query_point.plot(marker=".", markersize=50, ax=ax, color="red", zorder=2)
+    postcode_data = df.drop_duplicates(subset=["postcode"], inplace=False)
+    postcode_data.plot(marker=".", markersize=10, ax=ax, color="blue", zorder=1).set(
+        xlabel="easting",
+        ylabel="northing",
+        label="postcodes",
+        title="postcodes centres",
+    )
+    return
+
+
+def nearby_distributions(df, tags):
+    fig, axs = plt.subplots(len(tags), figsize=(12, 15))
+    fig.tight_layout()
+    for i in range(len(tags)):
+        tag = tags[i]["value"]
+        name = tags[i]["name"]
+        axs[i].hist(df[name], bins=20)
+        axs[i].title.set_text(name + " distribution")
+
+
+def given_distributions(df):
+    fig, axs = plt.subplots(3, figsize=(12, 9))
+    fig.tight_layout()
+    axs[0].hist(df["price"], bins=50)
+    axs[0].title.set_text("Price distribution")
+    axs[1].hist(df["date"], bins=50)
+    axs[1].title.set_text("Date distribution")
+    axs[2].hist(df["property_type"])
+
+
+def price_correlation_distributions(df, tags):
+    fig, axs = plt.subplots(2 + len(tags), figsize=(12, 20))
+    fig.tight_layout()
+    MAX = max(df["price"])
+    dates = pandas.date_range(
+        min(df["date"]), max(df["date"]), periods=20
+    ).to_pydatetime()
+    lfunc = lambda e: e.date()
+    npd = np.vectorize(lfunc)(dates)
+    axs[0].hist2d(df["date"], df["price"], bins=[npd, np.linspace(0, MAX, 20)])
+    axs[0].title.set_text("Date - price relation")
+
+    d = {"D": 0, "S": 1, "T": 2, "F": 3, "O": 4}
+    axs[1].hist2d(
+        df["property_type"].apply(lambda x: d[x]),
+        df["price"],
+        bins=[np.arange(0, 6, 1), np.linspace(0, MAX, 20)],
+    )
+    # axs[1].set_xticks?
+    axs[1].set_xticks([0.5, 1.5, 2.5, 3.5, 4.5])
+    axs[1].set_xticklabels(["D", "S", "T", "F", "O"])
+    axs[1].title.set_text("Property type - price relation")
+    for i in range(len(tags)):
+        tag = tags[i]["key"]
+        name = tags[i]["name"]
+        limit = max(df[name])
+        axs[i + 2].hist2d(
+            df[name],
+            df["price"],
+            bins=[np.arange(0, limit + 2, 1), np.linspace(0, MAX, 100)],
+        )
+        axs[i + 2].title.set_text(name + " - price relation")
+
+def get_data(conn, tags, latitude, longitude, date, lower = 500, upper = 1000, distance = 1000):
+  start_date = date - datetime.timedelta(days = 365 * 5)
+  end_date = date + datetime.timedelta(days = 365 * 5)
+  
+  cnt, bx = get_box(conn, latitude=latitude, longitude=longitude, start_date="'" + str(start_date) + "'", end_date="'" + str(end_date) + "'", lower=lower, upper=upper)
+  print(cnt, bx)
+  result = get_transactions(conn, bx)
+  df = pandas.DataFrame(result, columns = ["price", "date", "postcode", "property_type", "new_build_flag", "tenure_type", "locality", "town_city", "district", "county", "country", "latitude", "longitude", "db_id"])
+  df = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy(df.longitude, df.latitude))
+  df.set_crs(epsg = 4326, inplace=True)
+  df.to_crs(epsg = 27700, inplace=True)
+  data = get_nearby_count(df, tags, bx, distance = distance)
+  return data, bx
+
 
 def data():
     """Load the data from access and ensure missing values are correctly encoded as well as indices correct, column names informative, date and times correctly formatted. Return a structured data structure such as a data frame."""
