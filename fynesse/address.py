@@ -17,6 +17,7 @@ import scipy.stats"""
 """Address a particular question that arises from the data"""
 
 from sklearn.model_selection import train_test_split
+import sklearn
 import numpy as np
 import time
 import datetime
@@ -24,6 +25,7 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import pandas
 import geopandas
+
 from . import assess
 
 tags = [
@@ -129,7 +131,7 @@ def evaluate_model(data, tags, query_date):
     print("mean absolute error:", errors.mean())
 
 
-def predict_price(latitude, longitude, date, property_type, distance=1500):
+def predict_price(latitude, longitude, date, property_type, distance=1000):
     data, box = assess.get_data(
         latitude, longitude, date, lower=4000, upper=5000, distance=distance
     )
