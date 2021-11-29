@@ -29,42 +29,73 @@ import geopandas
 from . import assess
 
 tags = [
-        {"key": "historic",
-         "value": True,
-         "name": "historic",},
-        {"key": "leisure",
-         "value": True,
-         "name": "leisure",},
-        {"key": "tourism",
-         "value": True,
-         "name": "tourism",},
-        {"key": "healthcare",
-         "value": True,
-         "name": "healthcare",},
-        {"key": "office",
-         "value": True,
-         "name": "office",},
-        {"key": "public_transport",
-         "value": True,
-         "name": "public_transport",},
-        {"key": "landuse",
-         "value": ["commercial", "construction", "industrial"],
-         "name": "landuse",},
-        {"key": "man_made",
-         "value": True,
-         "name": "man_made",},
-        {"key": "amenity",
-         "value": ["pub", "restaurant", "bar", "cafe", "fast_food", "food_court"],
-         "name": "food places",},
-        {"key": "amenity",
-         "value": ["school", "college", "kindergarten", "language_school", "university", "library"],
-         "name": "education",},
-        {"key": "amenity",
-         "value": ["post_box", "post_office", "post_depot"],
-         "name": "postal points",},
-        {"key": "building",
-         "value": ["civic", "government", "public", "transportation"],
-         "name": "public buildings",}
+    {
+        "key": "historic",
+        "value": True,
+        "name": "historic",
+    },
+    {
+        "key": "leisure",
+        "value": True,
+        "name": "leisure",
+    },
+    {
+        "key": "tourism",
+        "value": True,
+        "name": "tourism",
+    },
+    {
+        "key": "healthcare",
+        "value": True,
+        "name": "healthcare",
+    },
+    {
+        "key": "office",
+        "value": True,
+        "name": "office",
+    },
+    {
+        "key": "public_transport",
+        "value": True,
+        "name": "public_transport",
+    },
+    {
+        "key": "landuse",
+        "value": ["commercial", "construction", "industrial"],
+        "name": "landuse",
+    },
+    {
+        "key": "man_made",
+        "value": True,
+        "name": "man_made",
+    },
+    {
+        "key": "amenity",
+        "value": ["pub", "restaurant", "bar", "cafe", "fast_food", "food_court"],
+        "name": "food places",
+    },
+    {
+        "key": "amenity",
+        "value": [
+            "school",
+            "college",
+            "kindergarten",
+            "language_school",
+            "university",
+            "library",
+        ],
+        "name": "education",
+    },
+    {
+        "key": "amenity",
+        "value": ["post_box", "post_office", "post_depot"],
+        "name": "postal points",
+    },
+    {
+        "key": "building",
+        "value": ["civic", "government", "public", "transportation"],
+        "name": "public buildings",
+    },
 ]
 
 
@@ -74,7 +105,7 @@ def df_to_design(df, tags, date):
     ]
     design = np.concatenate(
         (
-            np.ones(df.shape[0]).reshape(-1,1),
+            np.ones(df.shape[0]).reshape(-1, 1),
             df["date"].apply(lambda x: (x - date).days).to_numpy().reshape(-1, 1),
             np.where(df["property_type"] == "F", 1, 0).reshape(-1, 1),
             np.where(df["property_type"] == "S", 1, 0).reshape(-1, 1),
@@ -89,7 +120,11 @@ def df_to_design(df, tags, date):
 
 def train_model(data, tags, query_date):
     design = df_to_design(data, tags, query_date)
-    glm_basis = sm.GLM(data["price"], design, family=sm.families.Gaussian())
+    glm_basis = sm.GLM(
+        data["price"],
+        design,
+        family=sm.families.Gamma(link=sm.genmod.families.links.identity),
+    )
     regularized_basis = glm_basis.fit()
     return regularized_basis
 
@@ -132,6 +167,7 @@ def evaluate_data_quality(data, tags, query_date):
     print("error should be within <0.18, 0.25>")
     print("error above 0.35 means model has poor quality")
 
+
 def construct_gdf(latitude, longitude, date, property_type):
     query_df = pandas.DataFrame(
         {
@@ -150,9 +186,29 @@ def construct_gdf(latitude, longitude, date, property_type):
     query_df.to_crs(epsg=27700, inplace=True)
     return query_df
 
-def predict_price(conn, latitude, longitude, date, property_type, lower=5000, upper=7000, distance=1000, tags = tags, year_change = 3):
+
+def predict_price(
+    conn,
+    latitude,
+    longitude,
+    date,
+    property_type,
+    lower=5000,
+    upper=7000,
+    distance=1000,
+    tags=tags,
+    year_change=3,
+):
     data, box = assess.get_data(
-        conn, tags, latitude, longitude, date, lower=lower, upper=upper, distance=distance, year_change=year_change
+        conn,
+        tags,
+        latitude,
+        longitude,
+        date,
+        lower=lower,
+        upper=upper,
+        distance=distance,
+        year_change=year_change,
     )
     train, test = select_and_split(data)
     design_test = df_to_design(test, tags, date)
@@ -173,3 +229,16 @@ def predict_price(conn, latitude, longitude, date, property_type, lower=5000, up
     result = model.predict(query_design)
     return result, model, data, box
 
+
+def interprete_model(model, tags):
+    values = model.params
+    print(
+        f'A house of type "Other" on day of query without any objects nearby is estimated to cost {values[0]}'
+    )
+    print(f"house price increases by {values[1]} each day")
+    print(f"Flat property type increase price by {values[2]}")
+    print(f"Semidetached property type increase price by {values[3]}")
+    print(f"Detached property type increase price by {values[4]}")
+    print(f"Terraced property type increase price by {values[5]}")
+    for i in range(len(tags)):
+        print(f"One object with tag {tags[i]['name']} increases price by {values[6+i]}")

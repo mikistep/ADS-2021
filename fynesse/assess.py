@@ -261,10 +261,10 @@ def given_distributions(df):
     axs[2].hist(df["property_type"])
 
 
-def price_correlation_distributions(df, tags):
+def price_correlation_distributions(df, tags, remove_percentile = 0):
     fig, axs = plt.subplots(2 + len(tags), figsize=(12, 20))
     fig.tight_layout()
-    MAX = max(df["price"])
+    MAX = np.percentile(df["price"], 100 - remove_percentile)
     dates = pandas.date_range(
         min(df["date"]), max(df["date"]), periods=20
     ).to_pydatetime()
