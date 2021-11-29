@@ -16,6 +16,7 @@ import scipy.stats"""
 
 """Address a particular question that arises from the data"""
 
+from osmnx.geometries import _create_gdf
 from sklearn.model_selection import train_test_split
 import sklearn
 import numpy as np
@@ -114,7 +115,7 @@ def visualize_prediction(test_actual, test_prediction):
     plt.show()
 
 
-def evaluate_model(data, tags, query_date):
+def evaluate_data_quality(data, tags, query_date):
     errors = np.array([])
     for i in range(10):
         train, test = select_and_split(data)
@@ -128,23 +129,10 @@ def evaluate_model(data, tags, query_date):
         errors = np.append(errors, error)
     print(errors)
     print("mean absolute error:", errors.mean())
+    print("error should be within <0.20, 0.25>")
+    print("error above 0.35 means model has poor quality")
 
-
-def predict_price(conn, latitude, longitude, date, property_type, lower=5000, upper=7000, distance=1000, tags = tags, year_change = 3):
-    data, box = assess.get_data(
-        conn, tags, latitude, longitude, date, lower=lower, upper=upper, distance=distance, year_change=year_change
-    )
-    train, test = select_and_split(data)
-    design_test = df_to_design(test, tags, date)
-
-    model = train_model(train, tags, date)
-
-    test_prediction = model.predict(design_test)
-    error = sklearn.metrics.mean_absolute_percentage_error(
-        test["price"], test_prediction
-    )
-    print(error)
-
+def construct_gdf(latitude, longitude, date, property_type):
     query_df = pandas.DataFrame(
         {
             "latitude": [latitude],
@@ -160,7 +148,28 @@ def predict_price(conn, latitude, longitude, date, property_type, lower=5000, up
     )
     query_df.set_crs(epsg=4326, inplace=True)
     query_df.to_crs(epsg=27700, inplace=True)
+    return query_df
+
+def predict_price(conn, latitude, longitude, date, property_type, lower=5000, upper=7000, distance=1000, tags = tags, year_change = 3):
+    data, box = assess.get_data(
+        conn, tags, latitude, longitude, date, lower=lower, upper=upper, distance=distance, year_change=year_change
+    )
+    train, test = select_and_split(data)
+    design_test = df_to_design(test, tags, date)
+
+    model = train_model(train, tags, date)
+
+    test_prediction = model.predict(design_test)
+    error = sklearn.metrics.mean_absolute_percentage_error(
+        test["price"], test_prediction
+    )
+    print("Mean absolute percentage error:", error)
+    print("error should be within <0.20, 0.25>")
+    print("error above 0.35 means model has poor quality")
+
+    query_df = construct_gdf(latitude, longitude, date, property_type)
     query_df = assess.get_nearby_count(query_df, tags, box, distance=distance)
     query_design = df_to_design(query_df, tags, date)
     result = model.predict(query_design)
-    return result, model, data
+    return result, model, data, box
+

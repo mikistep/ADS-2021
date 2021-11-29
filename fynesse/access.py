@@ -205,12 +205,18 @@ def run_all(conn, pp_data_path, postcode_path):
     create_prices_coordinates_data(conn)
     return
 
-
+# used for showcases
 def show_indexes(conn):
     cur = conn.cursor()
 
     query = """
     SHOW INDEX FROM prices_coordinates_data
     """
+    cur.execute(query)
+    return cur.fetchall()
+
+# used for showcases
+def run_custom_query(conn, query):
+    cur = conn.cursor()
     cur.execute(query)
     return cur.fetchall()
