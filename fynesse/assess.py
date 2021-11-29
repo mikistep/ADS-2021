@@ -181,6 +181,7 @@ def get_nearby_count(gdf, tags, box, distance=500):
     )
     pois.set_crs(epsg=4326, inplace=True)
     pois.to_crs(epsg=27700, inplace=True)
+    pois["geometry"] = pois["geometry"].centroid
     pois = pois[list(set([tag["key"] for tag in tags])) + ["geometry"]]
     # pois['geometry'] = pois.buffer(distance)
 
@@ -190,7 +191,6 @@ def get_nearby_count(gdf, tags, box, distance=500):
     pois_join = postcode_data.sjoin(pois)
 
     for tag in tags:
-        print("close to tag: {}".format(tag["name"]))
         temp = pois_join[["postcode", tag["key"]]].copy()
         temp.dropna(inplace=True)
         if tag["value"] != True:
@@ -201,12 +201,10 @@ def get_nearby_count(gdf, tags, box, distance=500):
 
 
 def coor_to_grid(lat, long):
-    print(lat, long)
     df = pandas.DataFrame({"id": [0]})
     gdf = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy([long], [lat]))
     gdf.set_crs(epsg=4326, inplace=True)
     gdf.to_crs(epsg=27700, inplace=True)
-    print(gdf.head())
     return gdf
 
 

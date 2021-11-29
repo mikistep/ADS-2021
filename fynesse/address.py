@@ -16,7 +16,6 @@ import scipy.stats"""
 
 """Address a particular question that arises from the data"""
 
-from osmnx.geometries import _create_gdf
 from sklearn.model_selection import train_test_split
 import sklearn
 import numpy as np
@@ -130,7 +129,7 @@ def evaluate_data_quality(data, tags, query_date):
         errors = np.append(errors, error)
     print(errors)
     print("mean absolute error:", errors.mean())
-    print("error should be within <0.20, 0.25>")
+    print("error should be within <0.18, 0.25>")
     print("error above 0.35 means model has poor quality")
 
 def construct_gdf(latitude, longitude, date, property_type):
@@ -165,7 +164,7 @@ def predict_price(conn, latitude, longitude, date, property_type, lower=5000, up
         test["price"], test_prediction
     )
     print("Mean absolute percentage error:", error)
-    print("error should be within <0.20, 0.25>")
+    print("error should be within <0.18, 0.25>")
     print("error above 0.35 means model has poor quality")
 
     query_df = construct_gdf(latitude, longitude, date, property_type)
