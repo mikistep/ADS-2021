@@ -49,7 +49,7 @@ tags = [
          "value": True,
          "name": "public_transport",},
         {"key": "landuse",
-         "value": True,
+         "value": ["commercial", "construction", "industrial"],
          "name": "landuse",},
         {"key": "man_made",
          "value": True,
@@ -75,6 +75,7 @@ def df_to_design(df, tags, date):
     ]
     design = np.concatenate(
         (
+            np.ones(df.shape[0]).reshape(-1,1),
             df["date"].apply(lambda x: (x - date).days).to_numpy().reshape(-1, 1),
             np.where(df["property_type"] == "F", 1, 0).reshape(-1, 1),
             np.where(df["property_type"] == "S", 1, 0).reshape(-1, 1),
