@@ -17,6 +17,7 @@ def change_in_coor(kilometres, latitude):
         111.320 * math.cos(latitude / 180 * math.pi)
     )
 
+
 # box is used to store query parametres
 def construct_box(latitude, longitude, change, start_date, end_date):
     d_lat, d_long = change_in_coor(change, latitude)
@@ -31,6 +32,7 @@ def construct_box(latitude, longitude, change, start_date, end_date):
         "max_date": end_date,
         "change": change,
     }
+
 
 # extends box to cover more area
 def extend_box(box, more):
@@ -106,16 +108,36 @@ def get_transactions(conn, box, debug=False):
     cur = conn.cursor()
     cur.execute(query)
     result = cur.fetchall()
-    df = pandas.DataFrame(result, columns = ["price", "date", "postcode", "property_type", "new_build_flag", "tenure_type", "locality", "town_city", "district", "county", "country", "latitude", "longitude", "db_id"])
-    df = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy(df.longitude, df.latitude))
-    df.set_crs(epsg = 4326, inplace=True)
-    df.to_crs(epsg = 27700, inplace=True)
+    df = pandas.DataFrame(
+        result,
+        columns=[
+            "price",
+            "date",
+            "postcode",
+            "property_type",
+            "new_build_flag",
+            "tenure_type",
+            "locality",
+            "town_city",
+            "district",
+            "county",
+            "country",
+            "latitude",
+            "longitude",
+            "db_id",
+        ],
+    )
+    df = geopandas.GeoDataFrame(
+        df, geometry=geopandas.points_from_xy(df.longitude, df.latitude)
+    )
+    df.set_crs(epsg=4326, inplace=True)
+    df.to_crs(epsg=27700, inplace=True)
     return df
 
 
 # construts box given start_date, end_date, main point coordinates
 # number of transactions is expected to be in <lower, upper>
-def get_box(conn, latitude, longitude, start_date, end_date, lower, upper, debug = False):
+def get_box(conn, latitude, longitude, start_date, end_date, lower, upper, debug=False):
     assert lower < upper
     min_change = 0.5  # in kilometres
     max_change = 1000
@@ -126,7 +148,9 @@ def get_box(conn, latitude, longitude, start_date, end_date, lower, upper, debug
         )
         count = get_transaction_count(conn, box)
         if debug:
-          print("checking {} kilometres, got {} transactions".format(now_change, count))
+            print(
+                "checking {} kilometres, got {} transactions".format(now_change, count)
+            )
         if count < lower:
             min_change *= 1.4
             if min_change > max_change:
@@ -151,11 +175,12 @@ def get_box(conn, latitude, longitude, start_date, end_date, lower, upper, debug
         elif count > upper:
             max_change = av_change
         else:
-            #box["change"] = av_change
+            # box["change"] = av_change
             return count, box
         if max_change - min_change < 1:
-            #box["change"] = max_change
+            # box["change"] = max_change
             return count, box
+
 
 # adds feature columns to gdf based on tags
 def get_nearby_count(gdf, tags, box, distance=1000):
@@ -188,6 +213,7 @@ def get_nearby_count(gdf, tags, box, distance=1000):
         gdf[tag["name"]] = gdf["postcode"].apply(lambda x: d.get(x, 0))
     return gdf
 
+
 # transforms lat, long into northing, easting
 def coor_to_grid(lat, long):
     df = pandas.DataFrame({"id": [0]})
@@ -195,6 +221,7 @@ def coor_to_grid(lat, long):
     gdf.set_crs(epsg=4326, inplace=True)
     gdf.to_crs(epsg=27700, inplace=True)
     return gdf
+
 
 # plots transaction places together with important roads
 def plot_points(df, box):
@@ -229,6 +256,7 @@ def plot_points(df, box):
     )
     return
 
+
 # plots distribution of tag based features
 def nearby_distributions(df, tags):
     fig, axs = plt.subplots(len(tags), figsize=(12, 15))
@@ -238,18 +266,20 @@ def nearby_distributions(df, tags):
         axs[i].hist(df[name], bins=20)
         axs[i].title.set_text(name + " distribution")
 
+
 # plots distribution of properties taken from SQL
 def given_distributions(df):
     fig, axs = plt.subplots(3, figsize=(12, 9))
     fig.tight_layout()
-    axs[0].hist(df["price"], bins=50)
+    axs[0].hist(df["price"], bins=400)
     axs[0].title.set_text("Price distribution")
     axs[1].hist(df["date"], bins=50)
     axs[1].title.set_text("Date distribution")
-    axs[2].hist(df["property_type"], bins=5)
+    axs[2].hist(df["property_type"], bins=6)
+
 
 # plots correlation between price and features
-def price_correlation_distributions(df, tags, remove_percentile = 0):
+def price_correlation_distributions(df, tags, remove_percentile=0):
     fig, axs = plt.subplots(2 + len(tags), figsize=(12, 20))
     fig.tight_layout()
     MAX = np.percentile(df["price"], 100 - remove_percentile)
@@ -280,14 +310,32 @@ def price_correlation_distributions(df, tags, remove_percentile = 0):
         )
         axs[i + 2].title.set_text(name + " - price relation")
 
-# returns SQL data from a point with given restrictions, adds osmnx feature columns
-def get_data(conn, tags, latitude, longitude, date, lower = 500, upper = 1000, distance = 1000, year_change = 3):
-  start_date = date - datetime.timedelta(days = 365 * year_change)
-  end_date = date + datetime.timedelta(days = 365 * year_change)
-  
-  cnt, bx = get_box(conn, latitude=latitude, longitude=longitude, start_date="'" + str(start_date) + "'", end_date="'" + str(end_date) + "'", lower=lower, upper=upper)
-  print(cnt, bx)
-  result = get_transactions(conn, bx)
-  data = get_nearby_count(result, tags, bx, distance = distance)
-  return data, bx
 
+# returns SQL data from a point with given restrictions, adds osmnx feature columns
+def get_data(
+    conn,
+    tags,
+    latitude,
+    longitude,
+    date,
+    lower=500,
+    upper=1000,
+    distance=1000,
+    year_change=3,
+):
+    start_date = date - datetime.timedelta(days=365 * year_change)
+    end_date = date + datetime.timedelta(days=365 * year_change)
+
+    cnt, bx = get_box(
+        conn,
+        latitude=latitude,
+        longitude=longitude,
+        start_date="'" + str(start_date) + "'",
+        end_date="'" + str(end_date) + "'",
+        lower=lower,
+        upper=upper,
+    )
+    print(cnt, bx)
+    result = get_transactions(conn, bx)
+    data = get_nearby_count(result, tags, bx, distance=distance)
+    return data, bx

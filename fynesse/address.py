@@ -102,16 +102,18 @@ def df_to_design(df, tags, date):
     )
     return design
 
+
 # trains model
 def train_model(data, tags, query_date):
     design_matrix = df_to_design(data, tags, query_date)
-    glm= sm.GLM(
+    glm = sm.GLM(
         data["price"],
         design_matrix,
         family=sm.families.Gamma(link=sm.genmod.families.links.identity),
     )
     model = glm.fit()
     return model
+
 
 # removes outliers and splits data to train and test datasets
 def select_and_split(data):
@@ -120,6 +122,7 @@ def select_and_split(data):
     main_data = data[data["price"].apply(lambda x: x >= low and x <= high)]
     train, test = train_test_split(main_data, test_size=0.1)
     return train, test
+
 
 # visualizes prediction
 def visualize_prediction(test_actual, test_prediction):
@@ -133,6 +136,7 @@ def visualize_prediction(test_actual, test_prediction):
     )
     ax.set(xlabel="predicted", ylabel="actual")
     plt.show()
+
 
 # returns mean of mean absolute percentage error over 10 trials
 def evaluate_data_quality(data, tags, query_date):
@@ -152,6 +156,7 @@ def evaluate_data_quality(data, tags, query_date):
     print("error should be within <0.18, 0.25>")
     print("error above 0.35 means model has poor quality")
 
+
 # constructs GeoDataFrame from longitude and latitude
 def construct_gdf(latitude, longitude, date, property_type):
     query_df = pandas.DataFrame(
@@ -170,6 +175,7 @@ def construct_gdf(latitude, longitude, date, property_type):
     query_df.set_crs(epsg=4326, inplace=True)
     query_df.to_crs(epsg=27700, inplace=True)
     return query_df
+
 
 # predicts price at a location according to parameters
 def predict_price(
@@ -214,11 +220,12 @@ def predict_price(
     result = model.predict(query_design)
     return result, model, data, box, test
 
+
 # outputs information about the model that are able to be interpreted by a human
 def interprete_model(model, tags):
     values = model.params
     print(
-        f'A house of type "Other" on day of query without any objects nearby is estimated to cost {values[0]}'
+        f'A house of type "Other" on the day of a query without any objects nearby is estimated to cost {values[0]}'
     )
     print(f"house price increases by {values[1]} each day")
     print(f"Flat property type increase price by {values[2]}")
@@ -226,4 +233,6 @@ def interprete_model(model, tags):
     print(f"Detached property type increase price by {values[4]}")
     print(f"Terraced property type increase price by {values[5]}")
     for i in range(len(tags)):
-        print(f"One object with tag {tags[i]['name']} increases price by {values[6+i]}")
+        print(
+            f"One object with tag '{tags[i]['name']}' increases price by {values[6+i]}"
+        )

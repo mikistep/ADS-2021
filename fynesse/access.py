@@ -190,12 +190,14 @@ def create_prices_coordinates_data(conn):
     cur.commit()
     return
 
+
 # creates database
 def run_all(conn, pp_data_path, postcode_path):
     create_pp_data(conn, pp_data_path)
     create_postcode_data(conn, postcode_path)
     create_prices_coordinates_data(conn)
     return
+
 
 # used for showcases
 def run_custom_query(conn, query):
