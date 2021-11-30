@@ -10,22 +10,12 @@ import geopandas
 import numpy as np
 import datetime
 
-"""These are the types of import we might expect in this file
-import pandas
-import bokeh
-import matplotlib.pyplot as plt
-import sklearn.decomposition as decomposition
-import sklearn.feature_extraction"""
-
-"""Place commands in this file to assess the data you have downloaded. How are missing values encoded, how are outliers encoded? What do columns represent, makes rure they are correctly labeled. How is the data indexed. Crete visualisation routines to assess the data (e.g. in bokeh). Ensure that date formats are correct and correctly timezoned."""
-
 # returns change in latitude and longitude
 # formula based on https://stackoverflow.com/questions/1253499/simple-calculations-for-working-with-lat-lon-and-km-distance
 def change_in_coor(kilometres, latitude):
     return kilometres / 110.574, kilometres / (
         111.320 * math.cos(latitude / 180 * math.pi)
     )
-
 
 # box is used to store query parametres
 def construct_box(latitude, longitude, change, start_date, end_date):
@@ -42,7 +32,7 @@ def construct_box(latitude, longitude, change, start_date, end_date):
         "change": change,
     }
 
-
+# extends box to cover more area
 def extend_box(box, more):
     ans = box.copy()
     change = box["change"] + more
@@ -161,14 +151,14 @@ def get_box(conn, latitude, longitude, start_date, end_date, lower, upper, debug
         elif count > upper:
             max_change = av_change
         else:
-            box["change"] = av_change
+            #box["change"] = av_change
             return count, box
         if max_change - min_change < 1:
-            box["change"] = max_change
+            #box["change"] = max_change
             return count, box
 
-
-def get_nearby_count(gdf, tags, box, distance=500):
+# adds feature columns to gdf based on tags
+def get_nearby_count(gdf, tags, box, distance=1000):
     tag_dict = construct_dict(tags)
     print(tag_dict)
     box = extend_box(box, 1 + distance / 1000)
@@ -183,7 +173,6 @@ def get_nearby_count(gdf, tags, box, distance=500):
     pois.to_crs(epsg=27700, inplace=True)
     pois["geometry"] = pois["geometry"].centroid
     pois = pois[list(set([tag["key"] for tag in tags])) + ["geometry"]]
-    # pois['geometry'] = pois.buffer(distance)
 
     postcode_data = gdf[["postcode", "geometry"]].set_crs(epsg=27700)
     postcode_data.drop_duplicates(subset=["postcode"], inplace=True)
@@ -199,7 +188,7 @@ def get_nearby_count(gdf, tags, box, distance=500):
         gdf[tag["name"]] = gdf["postcode"].apply(lambda x: d.get(x, 0))
     return gdf
 
-
+# transforms lat, long into northing, easting
 def coor_to_grid(lat, long):
     df = pandas.DataFrame({"id": [0]})
     gdf = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy([long], [lat]))
@@ -207,7 +196,7 @@ def coor_to_grid(lat, long):
     gdf.to_crs(epsg=27700, inplace=True)
     return gdf
 
-
+# plots transaction places together with important roads
 def plot_points(df, box):
     fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(111)
@@ -240,17 +229,16 @@ def plot_points(df, box):
     )
     return
 
-
+# plots distribution of tag based features
 def nearby_distributions(df, tags):
     fig, axs = plt.subplots(len(tags), figsize=(12, 15))
     fig.tight_layout()
     for i in range(len(tags)):
-        tag = tags[i]["value"]
         name = tags[i]["name"]
         axs[i].hist(df[name], bins=20)
         axs[i].title.set_text(name + " distribution")
 
-
+# plots distribution of properties taken from SQL
 def given_distributions(df):
     fig, axs = plt.subplots(3, figsize=(12, 9))
     fig.tight_layout()
@@ -258,9 +246,9 @@ def given_distributions(df):
     axs[0].title.set_text("Price distribution")
     axs[1].hist(df["date"], bins=50)
     axs[1].title.set_text("Date distribution")
-    axs[2].hist(df["property_type"])
+    axs[2].hist(df["property_type"], bins=5)
 
-
+# plots correlation between price and features
 def price_correlation_distributions(df, tags, remove_percentile = 0):
     fig, axs = plt.subplots(2 + len(tags), figsize=(12, 20))
     fig.tight_layout()
@@ -279,12 +267,10 @@ def price_correlation_distributions(df, tags, remove_percentile = 0):
         df["price"],
         bins=[np.arange(0, 6, 1), np.linspace(0, MAX, 20)],
     )
-    # axs[1].set_xticks?
     axs[1].set_xticks([0.5, 1.5, 2.5, 3.5, 4.5])
     axs[1].set_xticklabels(["D", "S", "T", "F", "O"])
     axs[1].title.set_text("Property type - price relation")
     for i in range(len(tags)):
-        tag = tags[i]["key"]
         name = tags[i]["name"]
         limit = max(df[name])
         axs[i + 2].hist2d(
@@ -294,6 +280,7 @@ def price_correlation_distributions(df, tags, remove_percentile = 0):
         )
         axs[i + 2].title.set_text(name + " - price relation")
 
+# returns SQL data from a point with given restrictions, adds osmnx feature columns
 def get_data(conn, tags, latitude, longitude, date, lower = 500, upper = 1000, distance = 1000, year_change = 3):
   start_date = date - datetime.timedelta(days = 365 * year_change)
   end_date = date + datetime.timedelta(days = 365 * year_change)

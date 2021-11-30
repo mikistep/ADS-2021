@@ -1,21 +1,5 @@
 # This file contains code for suporting addressing questions in the data
 
-"""# Here are some of the imports we might expect 
-import sklearn.model_selection  as ms
-import sklearn.linear_model as lm
-import sklearn.svm as svm
-import sklearn.naive_bayes as naive_bayes
-import sklearn.tree as tree
-
-import GPy
-import torch
-import tensorflow as tf
-
-# Or if it's a statistical analysis
-import scipy.stats"""
-
-"""Address a particular question that arises from the data"""
-
 from sklearn.model_selection import train_test_split
 import sklearn
 import numpy as np
@@ -28,6 +12,7 @@ import geopandas
 
 from . import assess
 
+# default tags
 tags = [
     {
         "key": "historic",
@@ -98,7 +83,7 @@ tags = [
     },
 ]
 
-
+# transforms dataframe into design matrix
 def df_to_design(df, tags, date):
     feature_columns = [
         df[tag["name"]].to_numpy(dtype=float).reshape(-1, 1) for tag in tags
@@ -117,18 +102,18 @@ def df_to_design(df, tags, date):
     )
     return design
 
-
+# trains model
 def train_model(data, tags, query_date):
-    design = df_to_design(data, tags, query_date)
-    glm_basis = sm.GLM(
+    design_matrix = df_to_design(data, tags, query_date)
+    glm= sm.GLM(
         data["price"],
-        design,
+        design_matrix,
         family=sm.families.Gamma(link=sm.genmod.families.links.identity),
     )
-    regularized_basis = glm_basis.fit()
-    return regularized_basis
+    model = glm.fit()
+    return model
 
-
+# removes outliers and splits data to train and test datasets
 def select_and_split(data):
     prices = data["price"]
     low, high = np.percentile(prices, [2.5, 97.5])
@@ -136,7 +121,7 @@ def select_and_split(data):
     train, test = train_test_split(main_data, test_size=0.1)
     return train, test
 
-
+# visualizes prediction
 def visualize_prediction(test_actual, test_prediction):
     MAX = max(max(test_actual), max(test_prediction)) + 1000
     fig, ax = plt.subplots(figsize=(9, 9))
@@ -149,7 +134,7 @@ def visualize_prediction(test_actual, test_prediction):
     ax.set(xlabel="predicted", ylabel="actual")
     plt.show()
 
-
+# returns mean of mean absolute percentage error over 10 trials
 def evaluate_data_quality(data, tags, query_date):
     errors = np.array([])
     for i in range(10):
@@ -167,7 +152,7 @@ def evaluate_data_quality(data, tags, query_date):
     print("error should be within <0.18, 0.25>")
     print("error above 0.35 means model has poor quality")
 
-
+# constructs GeoDataFrame from longitude and latitude
 def construct_gdf(latitude, longitude, date, property_type):
     query_df = pandas.DataFrame(
         {
@@ -186,7 +171,7 @@ def construct_gdf(latitude, longitude, date, property_type):
     query_df.to_crs(epsg=27700, inplace=True)
     return query_df
 
-
+# predicts price at a location according to parameters
 def predict_price(
     conn,
     latitude,
@@ -227,9 +212,9 @@ def predict_price(
     query_df = assess.get_nearby_count(query_df, tags, box, distance=distance)
     query_design = df_to_design(query_df, tags, date)
     result = model.predict(query_design)
-    return result, model, data, box
+    return result, model, data, box, test
 
-
+# outputs information about the model that are able to be interpreted by a human
 def interprete_model(model, tags):
     values = model.params
     print(

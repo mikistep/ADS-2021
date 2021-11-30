@@ -1,15 +1,7 @@
 from .config import *
 import pymysql
 
-"""These are the types of import we might expect in this file
-import httplib2
-import oauth2
-import mongodb
-import sqlite"""
-
 # This file accesses the data
-
-"""Place commands in this file to access the data electronically. Don't remove any missing values, or deal with outliers. Make sure you have legalities correct, both intellectual property and personal data privacy rights. Beyond the legal side also think about the ethical issues around this data. """
 
 # estabilishes connection with server
 def create_connection(user, password, host, database, port=3306):
@@ -198,22 +190,12 @@ def create_prices_coordinates_data(conn):
     cur.commit()
     return
 
-
+# creates database
 def run_all(conn, pp_data_path, postcode_path):
     create_pp_data(conn, pp_data_path)
     create_postcode_data(conn, postcode_path)
     create_prices_coordinates_data(conn)
     return
-
-# used for showcases
-def show_indexes(conn):
-    cur = conn.cursor()
-
-    query = """
-    SHOW INDEX FROM prices_coordinates_data
-    """
-    cur.execute(query)
-    return cur.fetchall()
 
 # used for showcases
 def run_custom_query(conn, query):
