@@ -276,7 +276,7 @@ def given_distributions(df):
     axs[1].hist(df["date"], bins=50)
     axs[1].title.set_text("Date distribution")
     axs[2].hist(df["property_type"], bins=5)
-    axs[2].set_xticks([0.5, 1.5, 2.5, 3.5, 4.5])
+    axs[2].set_xticks([0.4, 1.2, 2.0, 2.8, 3.6])
 #    axs[2].set_xticklabels(["T", "D", "T", "F", "O"])
 
 
