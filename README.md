@@ -58,6 +58,18 @@ This function creates table in the data so that they are ready for `assess` stag
 
 This function executes query `query` on connection `conn` and returns result.
 
+### get_transaction_count
+
+`get_transaction_count(conn, box, debug=False)`
+
+This function returns the number of transactions within a `box` in the database associated with connection `conn`.
+
+### get_transactions
+
+`get_transactions(conn, box, debug=False)`
+
+This function returns transactions within a `box` in the database associated with connection `conn`.
+
 ## Assess
 
 ### Coordinate systems
@@ -124,18 +136,6 @@ A list of tags named `tags` is in `assess.py`.
 `tags` is a list of tags
 
 This function merges tags into a dictonary that can be used to query OpenStreetMap.
-
-### get_transaction_count
-
-`get_transaction_count(conn, box, debug=False)`
-
-This function returns the number of transactions within a `box` in the database associated with connection `conn`.
-
-### get_transactions
-
-`get_transactions(conn, box, debug=False)`
-
-This function returns transactions within a `box` in the database associated with connection `conn`.
 
 ### lower, upper
 

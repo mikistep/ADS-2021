@@ -176,6 +176,12 @@ def construct_gdf(latitude, longitude, date, property_type):
     query_df.to_crs(epsg=27700, inplace=True)
     return query_df
 
+def predict_with_model(model, longitude, latitude, date, base_date, property_type, distance):
+    query_df = construct_gdf(latitude, longitude, date, property_type)
+    query_df = assess.get_nearby_count(query_df, tags, assess.construct_box(latitude, longitude, 1 + distance / 1000, None, None), distance=distance)
+    query_design = df_to_design(query_df, tags, base_date)
+    result = model.get_prediction(query_design)
+    return result.summary_frame(alpha=0.05)
 
 # predicts price at a location according to parameters
 def predict_price(
@@ -214,10 +220,7 @@ def predict_price(
     print("error should be within <0.18, 0.25>")
     print("error above 0.35 means model has poor quality")
 
-    query_df = construct_gdf(latitude, longitude, date, property_type)
-    query_df = assess.get_nearby_count(query_df, tags, box, distance=distance)
-    query_design = df_to_design(query_df, tags, date)
-    result = model.predict(query_design)
+    result = predict_with_model(model, longitude, latitude, date, date, property_type, distance)
     return result, model, data, box, test
 
 

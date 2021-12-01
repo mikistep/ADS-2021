@@ -1,5 +1,7 @@
 from .config import *
 import pymysql
+import geopandas
+import pandas
 
 # This file accesses the data
 
@@ -191,3 +193,75 @@ def run_custom_query(conn, query):
     cur = conn.cursor()
     cur.execute(query)
     return cur.fetchall()
+
+# returns number of transactions within a box
+def get_transaction_count(conn, box, debug=False):
+    template = """
+    SELECT COUNT(*) FROM
+    prices_coordinates_data
+    WHERE lattitude BETWEEN {} AND {}
+    AND longitude BETWEEN {} AND {}
+    AND date_of_transfer BETWEEN {} AND {}
+    """
+    query = template.format(
+        box["min_latitude"],
+        box["max_latitude"],
+        box["min_longitude"],
+        box["max_longitude"],
+        box["min_date"],
+        box["max_date"],
+    )
+    if debug:
+        print(query)
+    cur = conn.cursor()
+    cur.execute(query)
+    return cur.fetchall()[0][0]
+
+
+# returns all transaction data within a box
+def get_transactions(conn, box, debug=False):
+    template = """
+    SELECT * FROM
+    prices_coordinates_data
+    WHERE lattitude BETWEEN {} AND {}
+    AND longitude BETWEEN {} AND {}
+    AND date_of_transfer BETWEEN {} AND {}
+    """
+    query = template.format(
+        box["min_latitude"],
+        box["max_latitude"],
+        box["min_longitude"],
+        box["max_longitude"],
+        box["min_date"],
+        box["max_date"],
+    )
+    if debug:
+        print(query)
+    cur = conn.cursor()
+    cur.execute(query)
+    result = cur.fetchall()
+    df = pandas.DataFrame(
+        result,
+        columns=[
+            "price",
+            "date",
+            "postcode",
+            "property_type",
+            "new_build_flag",
+            "tenure_type",
+            "locality",
+            "town_city",
+            "district",
+            "county",
+            "country",
+            "latitude",
+            "longitude",
+            "db_id",
+        ],
+    )
+    df = geopandas.GeoDataFrame(
+        df, geometry=geopandas.points_from_xy(df.longitude, df.latitude)
+    )
+    df.set_crs(epsg=4326, inplace=True)
+    df.to_crs(epsg=27700, inplace=True)
+    return df

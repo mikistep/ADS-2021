@@ -62,79 +62,6 @@ def construct_dict(tags):
     return ans
 
 
-# returns number of transactions within a box
-def get_transaction_count(conn, box, debug=False):
-    template = """
-    SELECT COUNT(*) FROM
-    prices_coordinates_data
-    WHERE lattitude BETWEEN {} AND {}
-    AND longitude BETWEEN {} AND {}
-    AND date_of_transfer BETWEEN {} AND {}
-    """
-    query = template.format(
-        box["min_latitude"],
-        box["max_latitude"],
-        box["min_longitude"],
-        box["max_longitude"],
-        box["min_date"],
-        box["max_date"],
-    )
-    if debug:
-        print(query)
-    cur = conn.cursor()
-    cur.execute(query)
-    return cur.fetchall()[0][0]
-
-
-# returns all transaction data within a box
-def get_transactions(conn, box, debug=False):
-    template = """
-    SELECT * FROM
-    prices_coordinates_data
-    WHERE lattitude BETWEEN {} AND {}
-    AND longitude BETWEEN {} AND {}
-    AND date_of_transfer BETWEEN {} AND {}
-    """
-    query = template.format(
-        box["min_latitude"],
-        box["max_latitude"],
-        box["min_longitude"],
-        box["max_longitude"],
-        box["min_date"],
-        box["max_date"],
-    )
-    if debug:
-        print(query)
-    cur = conn.cursor()
-    cur.execute(query)
-    result = cur.fetchall()
-    df = pandas.DataFrame(
-        result,
-        columns=[
-            "price",
-            "date",
-            "postcode",
-            "property_type",
-            "new_build_flag",
-            "tenure_type",
-            "locality",
-            "town_city",
-            "district",
-            "county",
-            "country",
-            "latitude",
-            "longitude",
-            "db_id",
-        ],
-    )
-    df = geopandas.GeoDataFrame(
-        df, geometry=geopandas.points_from_xy(df.longitude, df.latitude)
-    )
-    df.set_crs(epsg=4326, inplace=True)
-    df.to_crs(epsg=27700, inplace=True)
-    return df
-
-
 # construts box given start_date, end_date, main point coordinates
 # number of transactions is expected to be in <lower, upper>
 def get_box(conn, latitude, longitude, start_date, end_date, lower, upper, debug=False):
@@ -146,7 +73,7 @@ def get_box(conn, latitude, longitude, start_date, end_date, lower, upper, debug
         box = construct_box(
             latitude, longitude, now_change, start_date=start_date, end_date=end_date
         )
-        count = get_transaction_count(conn, box)
+        count = access.get_transaction_count(conn, box)
         if debug:
             print(
                 "checking {} kilometres, got {} transactions".format(now_change, count)
@@ -168,7 +95,7 @@ def get_box(conn, latitude, longitude, start_date, end_date, lower, upper, debug
         box = construct_box(
             latitude, longitude, av_change, start_date=start_date, end_date=end_date
         )
-        count = get_transaction_count(conn, box)
+        count = access.get_transaction_count(conn, box)
         if debug:
           print("checking {} kilometres, got {} transactions".format(av_change, count))
         if count < lower:
@@ -337,6 +264,6 @@ def get_data(
         upper=upper,
     )
     print(cnt, bx)
-    result = get_transactions(conn, bx)
+    result = access.get_transactions(conn, bx)
     data = get_nearby_count(result, tags, bx, distance=distance)
     return data, bx
