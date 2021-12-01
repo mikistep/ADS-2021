@@ -169,16 +169,16 @@ def get_box(conn, latitude, longitude, start_date, end_date, lower, upper, debug
             latitude, longitude, av_change, start_date=start_date, end_date=end_date
         )
         count = get_transaction_count(conn, box)
-        print("checking {} kilometres, got {} transactions".format(av_change, count))
+        if debug:
+          print("checking {} kilometres, got {} transactions".format(av_change, count))
         if count < lower:
             min_change = av_change
         elif count > upper:
             max_change = av_change
         else:
-            # box["change"] = av_change
             return count, box
         if max_change - min_change < 1:
-            # box["change"] = max_change
+            # no point of being more precise
             return count, box
 
 
@@ -277,7 +277,6 @@ def given_distributions(df):
     axs[1].title.set_text("Date distribution")
     axs[2].hist(df["property_type"], bins=5)
     axs[2].set_xticks([0.4, 1.2, 2.0, 2.8, 3.6])
-#    axs[2].set_xticklabels(["T", "D", "T", "F", "O"])
 
 
 # plots correlation between price and features

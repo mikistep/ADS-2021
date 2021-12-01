@@ -19,19 +19,6 @@ def create_connection(user, password, host, database, port=3306):
         print(f"Error connecting to the MariaDB Server: {e}")
     return conn
 
-
-# create_connection assumes that `main` exists, if it doesn't this query has to be called
-def login(conn):
-    query = """
-    CREATE DATABASE IF NOT EXISTS `main` DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;
-    USE `main`
-    """
-    cur = conn.cursor()
-    cur.execute(query)
-    cur.commit()
-    return
-
-
 # creates table `pp_data`, loads data from downloaded file
 def create_pp_data(conn, file_path):
     cur = conn.cursor()

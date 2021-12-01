@@ -225,14 +225,14 @@ def predict_price(
 def interprete_model(model, tags):
     values = model.params
     print(
-        f'A house of type "Other" on the day of a query without any objects nearby is estimated to cost {values[0]}'
+        f'A house of type "Other" on the day of a query without any objects nearby is estimated to cost {values[0]:.0f}'
     )
-    print(f"house price increases by {values[1]} each day")
-    print(f"Flat property type increase price by {values[2]}")
-    print(f"Semidetached property type increase price by {values[3]}")
-    print(f"Detached property type increase price by {values[4]}")
-    print(f"Terraced property type increase price by {values[5]}")
+    print(f"house price increases by {values[1]:.2f} each day")
+    print(f"Flat property type increase price by {values[2]:.2f}")
+    print(f"Semidetached property type increase price by {values[3]:.2f}")
+    print(f"Detached property type increase price by {values[4]:.2f}")
+    print(f"Terraced property type increase price by {values[5]:.2f}")
     for i in range(len(tags)):
         print(
-            f"One object with tag '{tags[i]['name']}' increases price by {values[6+i]}"
+            f"One object with tag '{tags[i]['name']}' increases price by {values[6+i]:.2f}"
         )
