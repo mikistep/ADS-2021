@@ -20,10 +20,10 @@ from setuptools import find_packages, setup, Command
 NAME = "fynesse"
 DESCRIPTION = "Template files for performing fynesse pipeline data analysis with python."
 URL = "https://github.com/mikistep/ADS-2021"
-EMAIL = "@cam.ac.uk"
-AUTHOR = "Givenname Familyname"
+EMAIL = "anonymous"
+AUTHOR = "anonymous"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.1.0"
+VERSION = "1.0.0"
 
 # What packages are required for this module to be executed?
 REQUIRED = [

@@ -1,12 +1,14 @@
 # Description
 
-This repo was made for Advanced Data Science assignment.
+This repository was made for Advanced Data Science assignment.
 
 It uses fynesse template which has three aspects: access, assess and address.
 
-Files for each aspect is in `fynesse/{aspect}.py`
+File for each aspect is in `fynesse/{aspect}.py`
 
 Guide to the repository is in `notebooks/guide.ipynb`.
+
+The notebook sometimes has dependency issues and it might be needed to restart runtime.
 
 # Code overview
 
@@ -308,3 +310,9 @@ Then it calculates a predictio for place with given proprty type.
 This function takes `model` and `tags` it was created with.
 
 It prints interpretation of the model.
+
+### predict_with_model
+
+`predict_with_model(model, longitude, latitude, date, base_date, property_type, distance)`
+
+This function makes a prediction given a model. Distance should be equal to distance with which model was created.
